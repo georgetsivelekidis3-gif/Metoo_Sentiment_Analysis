@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 import torch
+import sys
+print(sys.executable)
 import emoji
 from sklearn.metrics import classification_report
 from transformers import BertTokenizer, Trainer, TrainingArguments, EarlyStoppingCallback
@@ -91,8 +93,14 @@ from transformers import BertPreTrainedModel, BertModel
 import torch.nn as nn
 
 class MultiTaskBERT(BertPreTrainedModel):
+    _keys_to_ignore_on_load_missing = [
+        r"sentiment_classifier.weight",
+        r"sentiment_classifier.bias",
+        r"emotion_classifier.weight",
+        r"emotion_classifier.bias",
+    ]
     _tied_weights_keys = []
-    all_tied_weights_keys = []
+    all_tied_weights_keys = {}
 
     def __init__(self, config, num_sentiment_labels=3, num_emotion_labels=7):
         super().__init__(config)
@@ -100,7 +108,6 @@ class MultiTaskBERT(BertPreTrainedModel):
         self.dropout = nn.Dropout(0.3)
         self.sentiment_classifier = nn.Linear(config.hidden_size, num_sentiment_labels)
         self.emotion_classifier = nn.Linear(config.hidden_size, num_emotion_labels)
-        self.post_init()
 
     def forward(self, input_ids, attention_mask, sentiment_labels=None, emotion_labels=None):
         outputs = self.bert(input_ids, attention_mask=attention_mask)
@@ -130,7 +137,7 @@ training_args = TrainingArguments(
     metric_for_best_model="eval_loss",
     per_device_train_batch_size=32,
     per_device_eval_batch_size=32,
-    num_train_epochs=10,
+    num_train_epochs=1,
     logging_dir="./logs",
     logging_steps=10,
     fp16=True,
